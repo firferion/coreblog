@@ -1,8 +1,11 @@
 {{define "content"}}
-<h1>Latest Articles</h1>
-{{range .}}
-<div>
-    <a href="/article/{{.Slug}}">{{.Title}}</a>
+<h1>Последние статьи</h1>
+<div class="article-list">
+    {{range .}}
+    <article class="article-card">
+        <h2><a href="/article/{{.Slug}}">{{.Title}}</a></h2>
+        <p>{{.CreatedAt.Format "02.01.2006"}}</p>
+    </article>
+    {{end}}
 </div>
-{{end}}
 {{end}}

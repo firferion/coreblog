@@ -3,18 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DevLog</title>
+    <title>DevLog - Блог о разработке</title>
     <link rel="stylesheet" href="/static/css/main.css">
 </head>
 <body>
     <header>
-        <h1>DevLog</h1>
+        <a href="/" class="logo">DevLog</a>
+        
+        <label for="menu-toggle" class="menu-icon">&#9776;</label>
+        <input type="checkbox" id="menu-toggle">
+        
+        <nav>
+            <ul>
+                <li><a href="/">Главная</a></li>
+                <li><a href="/about">О проекте</a></li>
+            </ul>
+        </nav>
     </header>
+
     <main>
         {{template "content" .}}
     </main>
+
     <footer>
-        <p>&copy; 2026 DevLog</p>
+        <p>&copy; 2026 DevLog. Работает на Go.</p>
     </footer>
 </body>
 </html>

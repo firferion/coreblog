@@ -1,7 +1,7 @@
 package server
 
 import (
-	"encoding/json"
+	"bytes"
 	"html/template"
 	"net/http"
 	"sync"
@@ -36,6 +36,7 @@ func (s *Server) Router() http.Handler {
 }
 
 func (s *Server) routes() {
+	s.mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	s.mux.HandleFunc("GET /{$}", s.handleIndex())
 	s.mux.HandleFunc("GET /article/{slug}", s.handleArticle())
 }
@@ -46,7 +47,7 @@ func (s *Server) handleIndex() http.HandlerFunc {
 		data, ok := s.cache["index"]
 		if ok {
 			s.mu.RUnlock()
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.Write(data)
 			return
 		}
@@ -58,18 +59,20 @@ func (s *Server) handleIndex() http.HandlerFunc {
 			return
 		}
 
-		jsonData, err := json.Marshal(articles)
-		if err != nil {
+		var buf bytes.Buffer
+		if err := s.tmpl.ExecuteTemplate(&buf, "base.html", articles); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
+		htmlData := buf.Bytes()
+
 		s.mu.Lock()
-		s.cache["index"] = jsonData
+		s.cache["index"] = htmlData
 		s.mu.Unlock()
 
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(jsonData)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(htmlData)
 	}
 }
 
@@ -82,7 +85,7 @@ func (s *Server) handleArticle() http.HandlerFunc {
 		data, ok := s.cache[key]
 		if ok {
 			s.mu.RUnlock()
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.Write(data)
 			return
 		}
@@ -94,17 +97,19 @@ func (s *Server) handleArticle() http.HandlerFunc {
 			return
 		}
 
-		jsonData, err := json.Marshal(article)
-		if err != nil {
+		var buf bytes.Buffer
+		if err := s.tmpl.ExecuteTemplate(&buf, "base.html", article); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
+		htmlData := buf.Bytes()
+
 		s.mu.Lock()
-		s.cache[key] = jsonData
+		s.cache[key] = htmlData
 		s.mu.Unlock()
 
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(jsonData)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(htmlData)
 	}
 }
