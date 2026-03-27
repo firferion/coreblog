@@ -1,5 +1,12 @@
 {{define "article_content"}}
 <h1>{{.Title}}</h1>
-<div>{{.Content}}</div>
+<div class="tags">
+    {{range .Tags}}
+        <span class="tag">#{{.Name}}</span>
+    {{end}}
+</div>
+<div class="article-meta">
+    {{.Content}}
+</div>
 <a href="/" class="back-btn">&larr; Вернуться к списку</a>
 {{end}}

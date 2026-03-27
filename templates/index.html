@@ -5,6 +5,11 @@
     <article class="article-card">
         <h2><a href="/article/{{.Slug}}">{{.Title}}</a></h2>
         <div class="snippet">{{.Content}}</div>
+        <div class="tags">
+            {{range .Tags}}
+                <span class="tag">#{{.Name}}</span>
+            {{end}}
+        </div>
         <p class="date">{{.CreatedAt.Format "02.01.2006"}}</p>
     </article>
     {{end}}

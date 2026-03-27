@@ -3,7 +3,6 @@ package blog
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -31,13 +30,49 @@ func (s *Store) GetLatestArticles(ctx context.Context, limit int) ([]Article, er
 	}
 	defer rows.Close()
 
-	articles, err := pgx.CollectRows(rows, pgx.RowToStructByName[Article])
-	if err != nil {
-		return nil, err
+	var articles []Article
+	for rows.Next() {
+		var a Article
+		var rawContent string
+		err := rows.Scan(&a.ID, &a.Title, &a.Slug, &rawContent, &a.CreatedAt, &a.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		a.Content = RenderMarkdown(rawContent)
+		articles = append(articles, a)
 	}
 
+	if len(articles) == 0 {
+		return articles, nil
+	}
+
+	// Собираем ID статей
+	ids := make([]int, len(articles))
+	articleMap := make(map[int]*Article)
 	for i := range articles {
-		articles[i].Content = RenderMarkdown(string(articles[i].Content))
+		ids[i] = articles[i].ID
+		articleMap[articles[i].ID] = &articles[i]
+	}
+
+	// Загружаем теги для всех статей одним запросом
+	tagRows, err := s.pool.Query(ctx, `
+		SELECT t.id, t.name, t.slug, at.article_id 
+		FROM tags t 
+		JOIN article_tags at ON t.id = at.tag_id 
+		WHERE at.article_id = ANY($1)`, ids)
+	if err != nil {
+		return articles, nil // Не критично, если теги не загрузятся
+	}
+	defer tagRows.Close()
+
+	for tagRows.Next() {
+		var t Tag
+		var articleID int
+		if err := tagRows.Scan(&t.ID, &t.Name, &t.Slug, &articleID); err == nil {
+			if a, ok := articleMap[articleID]; ok {
+				a.Tags = append(a.Tags, t)
+			}
+		}
 	}
 
 	return articles, nil
@@ -55,5 +90,22 @@ func (s *Store) GetArticleBySlug(ctx context.Context, slug string) (Article, err
 		return Article{}, err
 	}
 	a.Content = RenderMarkdown(rawContent)
+
+	// Загружаем теги для этой статьи
+	tagRows, err := s.pool.Query(ctx, `
+		SELECT t.id, t.name, t.slug 
+		FROM tags t 
+		JOIN article_tags at ON t.id = at.tag_id 
+		WHERE at.article_id = $1`, a.ID)
+	if err == nil {
+		defer tagRows.Close()
+		for tagRows.Next() {
+			var t Tag
+			if err := tagRows.Scan(&t.ID, &t.Name, &t.Slug); err == nil {
+				a.Tags = append(a.Tags, t)
+			}
+		}
+	}
+
 	return a, nil
 }

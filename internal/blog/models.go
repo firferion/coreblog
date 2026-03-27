@@ -11,6 +11,7 @@ type Article struct {
 	Title     string
 	Slug      string
 	Content   template.HTML
+	Tags      []Tag
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
