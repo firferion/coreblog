@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: coreblog-db
+    environment:
+      POSTGRES_USER: devlog_user
+      POSTGRES_PASSWORD: devlog_password
+      POSTGRES_DB: devlog_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  postgres_data:
