@@ -20,8 +20,18 @@ type Article struct {
 
 // Snippet возвращает содержимое статьи без HTML-тегов для превью.
 func (a Article) Snippet() string {
-	re := regexp.MustCompile(`<[^>]*>`)
-	return html.UnescapeString(re.ReplaceAllString(string(a.Content), " "))
+	// 1. Вырезаем блоки <pre>...</pre> и <code>...</code> целиком вместе с контентом
+	// Используем (?s) для работы точки с переносами строк. 
+	// Go regexp не поддерживает обратные ссылки (\1), поэтому ищем раздельно.
+	codeRegex := regexp.MustCompile(`(?s)<pre[^>]*>.*?</pre>|<code[^>]*>.*?</code>`)
+	cleanContent := codeRegex.ReplaceAllString(string(a.Content), " ")
+
+	// 2. Вырезаем остальные HTML-теги
+	tagsRegex := regexp.MustCompile(`<[^>]*>`)
+	text := tagsRegex.ReplaceAllString(cleanContent, " ")
+
+	// 3. Декодируем HTML-сущности (кавычки и прочее)
+	return html.UnescapeString(text)
 }
 
 // Tag представляет собой модель тега.
