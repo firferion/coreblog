@@ -139,3 +139,6 @@ console.log(veryLongString.split("").reverse().join("").toUpperCase().repeat(5))
 DevLog следует этим трендам!',
     NOW() - INTERVAL '9 days', NOW() - INTERVAL '9 days'
 );
+
+INSERT INTO tags (name, slug) VALUES ('Go', 'go'), ('Backend', 'backend'), ('PostgreSQL', 'postgres') ON CONFLICT DO NOTHING;
+INSERT INTO article_tags (article_id, tag_id) VALUES (1, 1), (1, 2), (2, 1), (3, 2), (5, 1), (6, 3) ON CONFLICT DO NOTHING;

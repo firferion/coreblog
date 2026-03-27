@@ -2,6 +2,7 @@ package blog
 
 import (
 	"html/template"
+	"regexp"
 	"time"
 )
 
@@ -14,6 +15,12 @@ type Article struct {
 	Tags      []Tag
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+// Snippet возвращает содержимое статьи без HTML-тегов для превью.
+func (a Article) Snippet() string {
+	re := regexp.MustCompile(`<[^>]*>`)
+	return re.ReplaceAllString(string(a.Content), " ")
 }
 
 // Tag представляет собой модель тега.

@@ -4,7 +4,7 @@
     {{range .}}
     <article class="article-card">
         <h2><a href="/article/{{.Slug}}">{{.Title}}</a></h2>
-        <div class="snippet">{{.Content}}</div>
+        <div class="snippet">{{.Snippet}}</div>
         <div class="tags">
             {{range .Tags}}
                 <span class="tag">#{{.Name}}</span>
