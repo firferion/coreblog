@@ -26,6 +26,7 @@ body {
     display: grid;
     grid-template-rows: var(--header-height) 1fr auto;
     min-height: 100vh;
+    overflow-x: hidden;
 }
 
 header {
@@ -93,6 +94,7 @@ main {
     max-width: 900px;
     margin: 0 auto;
     width: 100%;
+    min-width: 0;
 }
 
 /* Markdown Content Styling */
@@ -166,6 +168,7 @@ pre {
     overflow-x: auto;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-left: 2px solid var(--accent-blue);
+    max-width: 100%;
 }
 
 pre code {
@@ -217,6 +220,7 @@ pre code {
 .article-card .snippet {
     display: -webkit-box;
     -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
     margin-bottom: 16px;

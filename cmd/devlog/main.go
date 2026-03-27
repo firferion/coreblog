@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"os"
 	"time"
 
 	"coreblog/internal/blog"
@@ -15,7 +17,7 @@ import (
 
 func main() {
 	// Строка подключения к БД
-	connStr := "postgres://devlog_user:devlog_password@localhost:5432/devlog_db"
+	connStr := "postgres://devlog_user:devlog_password@/devlog_db?host=/var/run/postgresql"
 
 	// Парсинг конфигурации пула
 	config, err := pgxpool.ParseConfig(connStr)
@@ -53,8 +55,16 @@ func main() {
 		ReadTimeout:  15 * time.Second,
 	}
 
-	fmt.Println("Сервер запускается на :8080")
-	if err := httpSrv.ListenAndServe(); err != nil {
-		log.Fatalf("Ошибка запуска сервера: %v", err)
+	fmt.Println("Сервер подготавливается на unix-сокете")
+	sockPath := "/tmp/devlog.sock"
+	os.Remove(sockPath)
+	listener, err := net.Listen("unix", sockPath)
+	if err != nil {
+		log.Fatalf("Socket error: %v", err)
+	}
+	os.Chmod(sockPath, 0666)
+	fmt.Println("Сервер запущен на сокете:", sockPath)
+	if err := httpSrv.Serve(listener); err != nil {
+		log.Fatalf("Serve error: %v", err)
 	}
 }
