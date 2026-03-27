@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
 	"net/http"
 	"sync"
@@ -11,20 +12,28 @@ import (
 
 // Server представляет собой HTTP-сервер приложения.
 type Server struct {
-	store *blog.Store
-	mux   *http.ServeMux
-	cache map[string][]byte
-	mu    sync.RWMutex
-	tmpl  *template.Template
+	store          *blog.Store
+	mux            *http.ServeMux
+	cache          map[string][]byte
+	mu             sync.RWMutex
+	tmpl           *template.Template
+	vkClientID     string
+	vkClientSecret string
+	vkRedirectURI  string
+	adminVKID      string
 }
 
 // NewServer создает новый экземпляр Server.
-func NewServer(store *blog.Store) *Server {
+func NewServer(store *blog.Store, vkClientID, vkClientSecret, vkRedirectURI, adminVKID string) *Server {
 	s := &Server{
-		store: store,
-		mux:   http.NewServeMux(),
-		cache: make(map[string][]byte),
-		tmpl:  template.Must(template.ParseGlob("templates/*.html")),
+		store:          store,
+		mux:            http.NewServeMux(),
+		cache:          make(map[string][]byte),
+		tmpl:           template.Must(template.ParseGlob("templates/*.html")),
+		vkClientID:     vkClientID,
+		vkClientSecret: vkClientSecret,
+		vkRedirectURI:  vkRedirectURI,
+		adminVKID:      adminVKID,
 	}
 	s.routes()
 	return s
@@ -39,6 +48,13 @@ func (s *Server) routes() {
 	s.mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	s.mux.HandleFunc("GET /{$}", s.handleIndex())
 	s.mux.HandleFunc("GET /article/{slug}", s.handleArticle())
+
+	// OAuth VK
+	s.mux.HandleFunc("GET /auth/login/vk", s.handleLoginVK())
+	s.mux.HandleFunc("GET /auth/callback/vk", s.handleCallbackVK())
+
+	// Admin
+	s.mux.Handle("GET /admin", s.adminOnly(s.handleAdmin()))
 }
 
 func (s *Server) handleIndex() http.HandlerFunc {
@@ -119,5 +135,12 @@ func (s *Server) handleArticle() http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write(htmlData)
+	}
+}
+
+func (s *Server) handleAdmin() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprint(w, "<h1>Добро пожаловать в Админку, Фирыч!</h1>")
 	}
 }

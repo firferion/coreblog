@@ -45,7 +45,14 @@ func main() {
 
 	// Инициализация слоев
 	store := blog.NewStore(pool)
-	srv := server.NewServer(store)
+
+	// Параметры VK OAuth из окружения
+	vkClientID := os.Getenv("VK_CLIENT_ID")
+	vkClientSecret := os.Getenv("VK_CLIENT_SECRET")
+	vkRedirectURI := os.Getenv("VK_REDIRECT_URI")
+	adminVKID := os.Getenv("ADMIN_VK_ID")
+
+	srv := server.NewServer(store, vkClientID, vkClientSecret, vkRedirectURI, adminVKID)
 
 	// Настройка HTTP-сервера
 	httpSrv := &http.Server{
