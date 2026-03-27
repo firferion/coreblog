@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"html/template"
 	"net/http"
 	"sync"
 
@@ -14,6 +15,7 @@ type Server struct {
 	mux   *http.ServeMux
 	cache map[string][]byte
 	mu    sync.RWMutex
+	tmpl  *template.Template
 }
 
 // NewServer создает новый экземпляр Server.
@@ -22,6 +24,7 @@ func NewServer(store *blog.Store) *Server {
 		store: store,
 		mux:   http.NewServeMux(),
 		cache: make(map[string][]byte),
+		tmpl:  template.Must(template.ParseGlob("templates/*.html")),
 	}
 	s.routes()
 	return s
