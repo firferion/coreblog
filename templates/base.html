@@ -23,7 +23,11 @@
     </header>
 
     <main>
-        {{template "content" .}}
+        {{if .IsIndex}}
+            {{template "index_content" .Articles}}
+        {{else}}
+            {{template "article_content" .Article}}
+        {{end}}
     </main>
 
     <footer>

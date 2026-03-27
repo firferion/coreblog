@@ -59,8 +59,12 @@ func (s *Server) handleIndex() http.HandlerFunc {
 			return
 		}
 
+		tmplData := map[string]any{
+			"IsIndex":  true,
+			"Articles": articles,
+		}
 		var buf bytes.Buffer
-		if err := s.tmpl.ExecuteTemplate(&buf, "base.html", articles); err != nil {
+		if err := s.tmpl.ExecuteTemplate(&buf, "base.html", tmplData); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -97,8 +101,12 @@ func (s *Server) handleArticle() http.HandlerFunc {
 			return
 		}
 
+		tmplData := map[string]any{
+			"IsIndex": false,
+			"Article": article,
+		}
 		var buf bytes.Buffer
-		if err := s.tmpl.ExecuteTemplate(&buf, "base.html", article); err != nil {
+		if err := s.tmpl.ExecuteTemplate(&buf, "base.html", tmplData); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
