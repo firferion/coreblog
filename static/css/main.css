@@ -299,3 +299,5 @@ footer {
         max-height: 300px;
     }
 }
+
+.admin-link { color: var(--accent-orange) !important; font-weight: bold; }
