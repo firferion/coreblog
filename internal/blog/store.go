@@ -31,18 +31,29 @@ func (s *Store) GetLatestArticles(ctx context.Context, limit int) ([]Article, er
 	}
 	defer rows.Close()
 
-	return pgx.CollectRows(rows, pgx.RowToStructByName[Article])
+	articles, err := pgx.CollectRows(rows, pgx.RowToStructByName[Article])
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range articles {
+		articles[i].Content = RenderMarkdown(string(articles[i].Content))
+	}
+
+	return articles, nil
 }
 
 // GetArticleBySlug возвращает одну статью по её слагу.
 func (s *Store) GetArticleBySlug(ctx context.Context, slug string) (Article, error) {
 	var a Article
+	var rawContent string
 	err := s.pool.QueryRow(ctx, `
 		SELECT id, title, slug, content, created_at, updated_at 
 		FROM articles 
-		WHERE slug = $1`, slug).Scan(&a.ID, &a.Title, &a.Slug, &a.Content, &a.CreatedAt, &a.UpdatedAt)
+		WHERE slug = $1`, slug).Scan(&a.ID, &a.Title, &a.Slug, &rawContent, &a.CreatedAt, &a.UpdatedAt)
 	if err != nil {
 		return Article{}, err
 	}
+	a.Content = RenderMarkdown(rawContent)
 	return a, nil
 }

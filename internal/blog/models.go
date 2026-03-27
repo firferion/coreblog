@@ -1,6 +1,7 @@
 package blog
 
 import (
+	"html/template"
 	"time"
 )
 
@@ -9,7 +10,7 @@ type Article struct {
 	ID        int
 	Title     string
 	Slug      string
-	Content   string
+	Content   template.HTML
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
