@@ -10,6 +10,9 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
+
+	"coreblog/internal/blog"
 )
 
 // generateRandomBase64url генерирует случайную строку заданной длины в байтах (base64url без паддинга)
@@ -17,6 +20,30 @@ func generateRandomBase64url(n int) string {
 	b := make([]byte, n)
 	rand.Read(b)
 	return base64.RawURLEncoding.EncodeToString(b)
+}
+
+func (s *Server) loginUser(w http.ResponseWriter, user *blog.User) {
+	sessionID := fmt.Sprintf("%d-%d", time.Now().UnixNano(), user.ID)
+	s.sessionsMu.Lock()
+	s.sessions[sessionID] = user
+	s.sessionsMu.Unlock()
+	http.SetCookie(w, &http.Cookie{Name: "session_id", Value: sessionID, Path: "/", HttpOnly: true, MaxAge: 86400 * 30})
+	if user.Role == "admin" {
+		http.SetCookie(w, &http.Cookie{Name: "admin_token", Value: "vk_logged_in", Path: "/", HttpOnly: true, MaxAge: 86400 * 30})
+	}
+}
+
+func (s *Server) handleLogout() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cookie, err := r.Cookie("session_id"); err == nil {
+			s.sessionsMu.Lock()
+			delete(s.sessions, cookie.Value)
+			s.sessionsMu.Unlock()
+		}
+		http.SetCookie(w, &http.Cookie{Name: "session_id", Value: "", Path: "/", MaxAge: -1})
+		http.SetCookie(w, &http.Cookie{Name: "admin_token", Value: "", Path: "/", MaxAge: -1})
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	}
 }
 
 func (s *Server) handleLoginVK() http.HandlerFunc {
@@ -118,13 +145,40 @@ func (s *Server) handleCallbackVK() http.HandlerFunc {
 			return
 		}
 
-		if fmt.Sprint(result.UserID) == s.adminVKID {
-			http.SetCookie(w, &http.Cookie{Name: "admin_token", Value: "vk_logged_in", Path: "/", MaxAge: 86400, HttpOnly: true})
-			http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		reqURL := fmt.Sprintf("https://api.vk.com/method/users.get?v=5.131&access_token=%s&fields=photo_100", result.AccessToken)
+		infoResp, err := http.Get(reqURL)
+		if err != nil {
+			http.Error(w, "Ошибка API ВК", 500)
+			return
+		}
+		defer infoResp.Body.Close()
+
+		var vkInfo struct {
+			Response []struct {
+				ID        int    `json:"id"`
+				FirstName string `json:"first_name"`
+				LastName  string `json:"last_name"`
+				Photo100  string `json:"photo_100"`
+			} `json:"response"`
+		}
+		json.NewDecoder(infoResp.Body).Decode(&vkInfo)
+		if len(vkInfo.Response) == 0 {
+			http.Error(w, "Нет данных ВК", 500)
 			return
 		}
 
-		http.Error(w, "Доступ запрещен", http.StatusForbidden)
+		vkUser := vkInfo.Response[0]
+		username := vkUser.FirstName + " " + vkUser.LastName
+		isAdmin := fmt.Sprint(vkUser.ID) == s.adminVKID
+
+		user, err := s.store.AuthenticateUser(r.Context(), "vk", fmt.Sprint(vkUser.ID), username, vkUser.Photo100, isAdmin)
+		if err != nil {
+			http.Error(w, "Ошибка БД", 500)
+			return
+		}
+
+		s.loginUser(w, user)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 }
 
@@ -191,22 +245,26 @@ func (s *Server) handleCallbackYandex() http.HandlerFunc {
 		}
 		defer respInfo.Body.Close()
 
-		var infoRes struct {
-			ID string `json:"id"`
+		var yaInfo struct {
+			ID              string `json:"id"`
+			Login           string `json:"login"`
+			DefaultAvatarID string `json:"default_avatar_id"`
 		}
-		if err := json.NewDecoder(respInfo.Body).Decode(&infoRes); err != nil {
-			http.Error(w, "Info decode failed: "+err.Error(), http.StatusInternalServerError)
+		json.NewDecoder(respInfo.Body).Decode(&yaInfo)
+
+		avatarURL := ""
+		if yaInfo.DefaultAvatarID != "" {
+			avatarURL = fmt.Sprintf("https://avatars.yandex.net/get-yapic/%s/islands-200", yaInfo.DefaultAvatarID)
+		}
+
+		isAdmin := yaInfo.ID == s.adminYandexID
+		user, err := s.store.AuthenticateUser(r.Context(), "yandex", yaInfo.ID, yaInfo.Login, avatarURL, isAdmin)
+		if err != nil {
+			http.Error(w, "Ошибка БД", 500)
 			return
 		}
 
-		log.Printf("YANDEX LOGIN ID: %s", infoRes.ID)
-
-		if infoRes.ID == s.adminYandexID {
-			http.SetCookie(w, &http.Cookie{Name: "admin_token", Value: "vk_logged_in", Path: "/", MaxAge: 86400, HttpOnly: true})
-			http.Redirect(w, r, "/admin", http.StatusSeeOther)
-			return
-		}
-
-		http.Error(w, "Доступ запрещен", http.StatusForbidden)
+		s.loginUser(w, user)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 }

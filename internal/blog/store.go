@@ -109,3 +109,35 @@ func (s *Store) GetArticleBySlug(ctx context.Context, slug string) (Article, err
 
 	return a, nil
 }
+
+// AuthenticateUser проверяет наличие пользователя или создает его.
+func (s *Store) AuthenticateUser(ctx context.Context, provider, providerID, username, avatarURL string, isAdmin bool) (*User, error) {
+	var user User
+	query := `SELECT u.id, u.username, u.avatar_url, u.role FROM users u JOIN user_identities ui ON u.id = ui.user_id WHERE ui.provider = $1 AND ui.provider_user_id = $2`
+	err := s.pool.QueryRow(ctx, query, provider, providerID).Scan(&user.ID, &user.Username, &user.AvatarURL, &user.Role)
+
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			role := "user"
+			if isAdmin {
+				role = "admin"
+			}
+			err = s.pool.QueryRow(ctx, `INSERT INTO users (username, avatar_url, role) VALUES ($1, $2, $3) RETURNING id`, username, avatarURL, role).Scan(&user.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			_, err = s.pool.Exec(ctx, `INSERT INTO user_identities (user_id, provider, provider_user_id) VALUES ($1, $2, $3)`, user.ID, provider, providerID)
+			if err != nil {
+				return nil, err
+			}
+
+			user.Username = username
+			user.AvatarURL = avatarURL
+			user.Role = role
+			return &user, nil
+		}
+		return nil, err
+	}
+	return &user, nil
+}

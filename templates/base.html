@@ -18,7 +18,24 @@
             <ul>
                 <li><a href="/">Главная</a></li>
                 <li><a href="/about">О проекте</a></li>
-                <li><a href="/admin" class="admin-link">Админка</a></li>
+                {{if .User}}
+                <li class="user-profile">
+                    <img src="{{.User.AvatarURL}}" alt="Avatar" class="avatar" id="avatar-toggle">
+                    <div class="user-dropdown" id="user-dropdown">
+                        <div class="user-info">
+                            <p class="user-name">{{.User.Username}}</p>
+                            <p class="user-role">{{if eq .User.Role "admin"}}Администратор{{else}}Пользователь{{end}}</p>
+                        </div>
+                        <hr>
+                        {{if eq .User.Role "admin"}}
+                        <a href="/admin" class="dropdown-item">⚙️ Панель управления</a>
+                        {{end}}
+                        <a href="/auth/logout" class="dropdown-item">🚪 Выйти</a>
+                    </div>
+                </li>
+                {{else}}
+                <li><button id="login-btn" class="login-btn">Вход</button></li>
+                {{end}}
             </ul>
         </nav>
     </header>
@@ -34,5 +51,36 @@
     <footer>
         <p>&copy; 2026 DevLog. Работает на Go.</p>
     </footer>
+
+    <div id="auth-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="close-modal">&times;</span>
+            <h2>Вход в DevLog</h2>
+            <p>Выберите способ авторизации:</p>
+            <div class="auth-methods">
+                <a href="/auth/login/vk" class="auth-btn vk-btn">ВКонтакте</a>
+                <a href="/auth/login/yandex" class="auth-btn ya-btn">Яндекс ID</a>
+            </div>
+        </div>
+    </div>
+    <script>
+        const modal = document.getElementById('auth-modal');
+        const loginBtn = document.getElementById('login-btn');
+        const closeBtn = document.getElementById('close-modal');
+        if(loginBtn) loginBtn.onclick = () => modal.style.display = 'flex';
+        if(closeBtn) closeBtn.onclick = () => modal.style.display = 'none';
+        window.onclick = (e) => { if (e.target == modal) modal.style.display = 'none'; }
+    
+        const avatarToggle = document.getElementById('avatar-toggle');
+        const dropdown = document.getElementById('user-dropdown');
+        if(avatarToggle) {
+            avatarToggle.onclick = () => dropdown.classList.toggle('show');
+            window.addEventListener('click', (e) => {
+                if (!avatarToggle.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.classList.remove('show');
+                }
+            });
+        }
+    </script>
 </body>
 </html>

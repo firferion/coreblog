@@ -7,6 +7,14 @@ import (
 	"time"
 )
 
+// User представляет собой модель пользователя.
+type User struct {
+	ID        int
+	Username  string
+	AvatarURL string
+	Role      string
+}
+
 // Article представляет собой модель статьи.
 type Article struct {
 	ID        int

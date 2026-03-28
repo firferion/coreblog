@@ -25,6 +25,8 @@ type Server struct {
 	yandexClientSecret string
 	yandexRedirectURI  string
 	adminYandexID      string
+	sessions           map[string]*blog.User
+	sessionsMu         sync.RWMutex
 }
 
 // NewServer создает новый экземпляр Server.
@@ -42,6 +44,7 @@ func NewServer(store *blog.Store, vkClientID, vkClientSecret, vkRedirectURI, adm
 		yandexClientSecret: yandexClientSecret,
 		yandexRedirectURI:  yandexRedirectURI,
 		adminYandexID:      adminYandexID,
+		sessions:           make(map[string]*blog.User),
 	}
 	s.routes()
 	return s
@@ -50,6 +53,16 @@ func NewServer(store *blog.Store, vkClientID, vkClientSecret, vkRedirectURI, adm
 // Router возвращает обработчик маршрутов.
 func (s *Server) Router() http.Handler {
 	return s.mux
+}
+
+func (s *Server) getUser(r *http.Request) *blog.User {
+	cookie, err := r.Cookie("session_id")
+	if err != nil {
+		return nil
+	}
+	s.sessionsMu.RLock()
+	defer s.sessionsMu.RUnlock()
+	return s.sessions[cookie.Value]
 }
 
 func (s *Server) routes() {
@@ -67,20 +80,13 @@ func (s *Server) routes() {
 
 	// Admin
 	s.mux.Handle("GET /admin", s.adminOnly(s.handleAdmin()))
+
+	// Logout
+	s.mux.HandleFunc("GET /auth/logout", s.handleLogout())
 }
 
 func (s *Server) handleIndex() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		s.mu.RLock()
-		data, ok := s.cache["index"]
-		if ok {
-			s.mu.RUnlock()
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.Write(data)
-			return
-		}
-		s.mu.RUnlock()
-
 		articles, err := s.store.GetLatestArticles(r.Context(), 10)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -90,6 +96,7 @@ func (s *Server) handleIndex() http.HandlerFunc {
 		tmplData := map[string]any{
 			"IsIndex":  true,
 			"Articles": articles,
+			"User":     s.getUser(r),
 		}
 		var buf bytes.Buffer
 		if err := s.tmpl.ExecuteTemplate(&buf, "base.html", tmplData); err != nil {
@@ -99,10 +106,6 @@ func (s *Server) handleIndex() http.HandlerFunc {
 
 		htmlData := buf.Bytes()
 
-		s.mu.Lock()
-		s.cache["index"] = htmlData
-		s.mu.Unlock()
-
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write(htmlData)
 	}
@@ -111,17 +114,6 @@ func (s *Server) handleIndex() http.HandlerFunc {
 func (s *Server) handleArticle() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		slug := r.PathValue("slug")
-		key := "article:" + slug
-
-		s.mu.RLock()
-		data, ok := s.cache[key]
-		if ok {
-			s.mu.RUnlock()
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.Write(data)
-			return
-		}
-		s.mu.RUnlock()
 
 		article, err := s.store.GetArticleBySlug(r.Context(), slug)
 		if err != nil {
@@ -132,6 +124,7 @@ func (s *Server) handleArticle() http.HandlerFunc {
 		tmplData := map[string]any{
 			"IsIndex": false,
 			"Article": article,
+			"User":    s.getUser(r),
 		}
 		var buf bytes.Buffer
 		if err := s.tmpl.ExecuteTemplate(&buf, "base.html", tmplData); err != nil {
@@ -140,10 +133,6 @@ func (s *Server) handleArticle() http.HandlerFunc {
 		}
 
 		htmlData := buf.Bytes()
-
-		s.mu.Lock()
-		s.cache[key] = htmlData
-		s.mu.Unlock()
 
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write(htmlData)

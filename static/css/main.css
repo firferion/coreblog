@@ -301,3 +301,27 @@ footer {
 }
 
 .admin-link { color: var(--accent-orange) !important; font-weight: bold; }
+
+/* Кнопка Вход */
+.login-btn { background: transparent; color: var(--accent-orange); border: 2px solid var(--accent-orange); padding: 5px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+.login-btn:hover { background: var(--accent-orange); color: #1a1e24; }
+/* Модалка */
+.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+.modal-content { background-color: #232830; padding: 30px; border-radius: 10px; width: 350px; text-align: center; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+.close-btn { position: absolute; top: 10px; right: 15px; color: #cfd8dc; font-size: 24px; cursor: pointer; }
+.auth-methods { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+.auth-btn { padding: 10px; border-radius: 5px; text-decoration: none; color: white; font-weight: bold; transition: 0.3s; }
+.vk-btn { background-color: #0077FF; } .vk-btn:hover { background-color: #005ce6; }
+.ya-btn { background-color: #FC3F1D; } .ya-btn:hover { background-color: #e03515; }
+/* Профиль и Дропдаун */
+.user-profile { position: relative; display: flex; align-items: center; cursor: pointer; margin-left: 15px; }
+.avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--accent-orange); object-fit: cover; }
+.user-dropdown { display: none; position: absolute; top: 50px; right: 0; background: #232830; min-width: 200px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); overflow: hidden; z-index: 100; border: 1px solid #2e3440; }
+.user-dropdown.show { display: block; animation: fadeIn 0.2s ease; }
+.user-info { padding: 15px; background: #1a1e24; }
+.user-name { margin: 0; font-weight: bold; color: #fff; }
+.user-role { margin: 5px 0 0 0; font-size: 0.8rem; color: #8892b0; }
+.dropdown-item { display: block; padding: 12px 15px; color: #cfd8dc; text-decoration: none; transition: background 0.2s; }
+.dropdown-item:hover { background: #2e3440; color: #fff; }
+.user-dropdown hr { border: 0; border-top: 1px solid #2e3440; margin: 0; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
