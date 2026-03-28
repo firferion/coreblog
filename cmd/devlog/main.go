@@ -52,7 +52,13 @@ func main() {
 	vkRedirectURI := os.Getenv("VK_REDIRECT_URI")
 	adminVKID := os.Getenv("ADMIN_VK_ID")
 
-	srv := server.NewServer(store, vkClientID, vkClientSecret, vkRedirectURI, adminVKID)
+	// Параметры Yandex OAuth из окружения
+	yandexClientID := os.Getenv("YANDEX_CLIENT_ID")
+	yandexClientSecret := os.Getenv("YANDEX_CLIENT_SECRET")
+	yandexRedirectURI := os.Getenv("YANDEX_REDIRECT_URI")
+	adminYandexID := os.Getenv("ADMIN_YANDEX_ID")
+
+	srv := server.NewServer(store, vkClientID, vkClientSecret, vkRedirectURI, adminVKID, yandexClientID, yandexClientSecret, yandexRedirectURI, adminYandexID)
 
 	// Настройка HTTP-сервера
 	httpSrv := &http.Server{

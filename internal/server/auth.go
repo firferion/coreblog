@@ -127,3 +127,86 @@ func (s *Server) handleCallbackVK() http.HandlerFunc {
 		http.Error(w, "Доступ запрещен", http.StatusForbidden)
 	}
 }
+
+func (s *Server) handleLoginYandex() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		authURL := fmt.Sprintf("https://oauth.yandex.ru/authorize?response_type=code&client_id=%s&redirect_uri=%s",
+			s.yandexClientID, url.QueryEscape(s.yandexRedirectURI))
+		http.Redirect(w, r, authURL, http.StatusTemporaryRedirect)
+	}
+}
+
+func (s *Server) handleCallbackYandex() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		errReason := r.URL.Query().Get("error")
+		if errReason != "" {
+			http.Error(w, "Yandex Error: "+errReason, http.StatusBadRequest)
+			return
+		}
+
+		code := r.URL.Query().Get("code")
+		if code == "" {
+			http.Error(w, "Code not found", http.StatusBadRequest)
+			return
+		}
+
+		data := url.Values{}
+		data.Set("grant_type", "authorization_code")
+		data.Set("code", code)
+		data.Set("client_id", s.yandexClientID)
+		data.Set("client_secret", s.yandexClientSecret)
+
+		resp, err := http.PostForm("https://oauth.yandex.ru/token", data)
+		if err != nil {
+			http.Error(w, "Token request failed: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer resp.Body.Close()
+
+		var tokenRes struct {
+			AccessToken string `json:"access_token"`
+			Error       string `json:"error"`
+			ErrorDesc   string `json:"error_description"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&tokenRes); err != nil {
+			http.Error(w, "JSON decode failed: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if tokenRes.Error != "" {
+			http.Error(w, fmt.Sprintf("Token error: %s (%s)", tokenRes.Error, tokenRes.ErrorDesc), http.StatusUnauthorized)
+			return
+		}
+
+		reqInfo, err := http.NewRequest("GET", "https://login.yandex.ru/info", nil)
+		if err != nil {
+			http.Error(w, "Info request creation failed: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		reqInfo.Header.Set("Authorization", "OAuth "+tokenRes.AccessToken)
+
+		respInfo, err := http.DefaultClient.Do(reqInfo)
+		if err != nil {
+			http.Error(w, "Info request failed: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer respInfo.Body.Close()
+
+		var infoRes struct {
+			ID string `json:"id"`
+		}
+		if err := json.NewDecoder(respInfo.Body).Decode(&infoRes); err != nil {
+			http.Error(w, "Info decode failed: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		log.Printf("YANDEX LOGIN ID: %s", infoRes.ID)
+
+		if infoRes.ID == s.adminYandexID {
+			http.SetCookie(w, &http.Cookie{Name: "admin_token", Value: "vk_logged_in", Path: "/", MaxAge: 86400, HttpOnly: true})
+			http.Redirect(w, r, "/admin", http.StatusSeeOther)
+			return
+		}
+
+		http.Error(w, "Доступ запрещен", http.StatusForbidden)
+	}
+}

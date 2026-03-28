@@ -17,23 +17,31 @@ type Server struct {
 	cache          map[string][]byte
 	mu             sync.RWMutex
 	tmpl           *template.Template
-	vkClientID     string
-	vkClientSecret string
-	vkRedirectURI  string
-	adminVKID      string
+	vkClientID         string
+	vkClientSecret     string
+	vkRedirectURI      string
+	adminVKID          string
+	yandexClientID     string
+	yandexClientSecret string
+	yandexRedirectURI  string
+	adminYandexID      string
 }
 
 // NewServer создает новый экземпляр Server.
-func NewServer(store *blog.Store, vkClientID, vkClientSecret, vkRedirectURI, adminVKID string) *Server {
+func NewServer(store *blog.Store, vkClientID, vkClientSecret, vkRedirectURI, adminVKID, yandexClientID, yandexClientSecret, yandexRedirectURI, adminYandexID string) *Server {
 	s := &Server{
-		store:          store,
-		mux:            http.NewServeMux(),
-		cache:          make(map[string][]byte),
-		tmpl:           template.Must(template.ParseGlob("templates/*.html")),
-		vkClientID:     vkClientID,
-		vkClientSecret: vkClientSecret,
-		vkRedirectURI:  vkRedirectURI,
-		adminVKID:      adminVKID,
+		store:              store,
+		mux:                http.NewServeMux(),
+		cache:              make(map[string][]byte),
+		tmpl:               template.Must(template.ParseGlob("templates/*.html")),
+		vkClientID:         vkClientID,
+		vkClientSecret:     vkClientSecret,
+		vkRedirectURI:      vkRedirectURI,
+		adminVKID:          adminVKID,
+		yandexClientID:     yandexClientID,
+		yandexClientSecret: yandexClientSecret,
+		yandexRedirectURI:  yandexRedirectURI,
+		adminYandexID:      adminYandexID,
 	}
 	s.routes()
 	return s
@@ -52,6 +60,10 @@ func (s *Server) routes() {
 	// OAuth VK
 	s.mux.HandleFunc("GET /auth/login/vk", s.handleLoginVK())
 	s.mux.HandleFunc("GET /auth/callback/vk", s.handleCallbackVK())
+
+	// OAuth Yandex
+	s.mux.HandleFunc("GET /auth/login/yandex", s.handleLoginYandex())
+	s.mux.HandleFunc("GET /auth/callback/yandex", s.handleCallbackYandex())
 
 	// Admin
 	s.mux.Handle("GET /admin", s.adminOnly(s.handleAdmin()))
