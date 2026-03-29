@@ -16,8 +16,8 @@
         
         <nav>
             <ul>
-                <li><a href="/">Главная</a></li>
-                <li><a href="/about">О проекте</a></li>
+                <li><a href="/"><span class="nav-icon">🏠</span><span class="nav-text">Главная</span></a></li>
+                <li><a href="/about"><span class="nav-icon">ℹ️</span><span class="nav-text">О проекте</span></a></li>
                 {{if .User}}
                 <li class="user-profile">
                     <img src="{{.User.AvatarURL}}" alt="Avatar" class="avatar" id="avatar-toggle">
@@ -28,13 +28,13 @@
                         </div>
                         <hr>
                         {{if eq .User.Role "admin"}}
-                        <a href="/admin" class="dropdown-item">⚙️ Панель управления</a>
+                        <a href="/admin" class="dropdown-item">⚙️ Админка</a>
                         {{end}}
                         <a href="/auth/logout" class="dropdown-item">🚪 Выйти</a>
                     </div>
                 </li>
                 {{else}}
-                <li><button id="login-btn" class="login-btn">Вход</button></li>
+                <li class="nav-login"><button id="login-btn" class="login-btn"><span class="nav-icon">🔑</span><span class="nav-text">Вход</span></button></li>
                 {{end}}
             </ul>
         </nav>
