@@ -28,6 +28,7 @@ services:
       - socket_data:/var/run/devlog
       - ./templates:/root/templates:ro
       - ./static:/root/static:ro
+      - ./.env:/root/.env:ro
 
   web:
     build:
