@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"html/template"
 	"net/http"
 	"sync"
@@ -15,7 +14,6 @@ type Server struct {
 	mux            *http.ServeMux
 	cache          map[string][]byte
 	mu             sync.RWMutex
-	tmpl           *template.Template
 	vkClientID         string
 	vkClientSecret     string
 	vkRedirectURI      string
@@ -34,7 +32,6 @@ func NewServer(store *blog.Store, vkClientID, vkClientSecret, vkRedirectURI, adm
 		store:              store,
 		mux:                http.NewServeMux(),
 		cache:              make(map[string][]byte),
-		tmpl:               template.Must(template.ParseGlob("templates/*.html")),
 		vkClientID:         vkClientID,
 		vkClientSecret:     vkClientSecret,
 		vkRedirectURI:      vkRedirectURI,
@@ -82,9 +79,30 @@ func (s *Server) routes() {
 
 	// Admin
 	s.mux.Handle("GET /admin", s.adminOnly(s.handleAdmin()))
+	s.mux.Handle("GET /admin/editor", s.adminOnly(s.handleEditorGET()))
+
+	// Privacy
+	s.mux.HandleFunc("GET /privacy", s.handlePrivacy())
 
 	// Logout
 	s.mux.HandleFunc("GET /auth/logout", s.handleLogout())
+}
+
+func (s *Server) render(w http.ResponseWriter, r *http.Request, data map[string]any) {
+	// Автоматически добавляем пользователя для каждой страницы
+	data["User"] = s.getUser(r)
+
+	// Парсим шаблоны на лету (обеспечивает Live Reload HTML без рестарта сервера)
+	t, err := template.ParseGlob("templates/*.html")
+	if err != nil {
+		http.Error(w, "Ошибка сборки шаблонов: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := t.ExecuteTemplate(w, "base.html", data); err != nil {
+		http.Error(w, "Ошибка рендеринга: "+err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func (s *Server) handleIndex() http.HandlerFunc {
@@ -94,22 +112,10 @@ func (s *Server) handleIndex() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
-		tmplData := map[string]any{
+		s.render(w, r, map[string]any{
 			"IsIndex":  true,
 			"Articles": articles,
-			"User":     s.getUser(r),
-		}
-		var buf bytes.Buffer
-		if err := s.tmpl.ExecuteTemplate(&buf, "base.html", tmplData); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		htmlData := buf.Bytes()
-
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Write(htmlData)
+		})
 	}
 }
 
@@ -123,21 +129,10 @@ func (s *Server) handleArticle() http.HandlerFunc {
 			return
 		}
 
-		tmplData := map[string]any{
+		s.render(w, r, map[string]any{
 			"IsIndex": false,
 			"Article": article,
-			"User":    s.getUser(r),
-		}
-		var buf bytes.Buffer
-		if err := s.tmpl.ExecuteTemplate(&buf, "base.html", tmplData); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		htmlData := buf.Bytes()
-
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Write(htmlData)
+		})
 	}
 }
 
@@ -150,13 +145,26 @@ func (s *Server) handleAdmin() http.HandlerFunc {
 			return
 		}
 
-		tmplData := map[string]any{
+		s.render(w, r, map[string]any{
 			"IsAdmin":  true,
 			"Articles": articles,
-			"User":     s.getUser(r),
-		}
+		})
+	}
+}
 
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		s.tmpl.ExecuteTemplate(w, "base.html", tmplData)
+func (s *Server) handlePrivacy() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		s.render(w, r, map[string]any{
+			"IsPrivacy": true,
+		})
+	}
+}
+
+func (s *Server) handleEditorGET() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		s.render(w, r, map[string]any{
+			"IsAdmin": true,
+			"IsEditor": true,
+		})
 	}
 }

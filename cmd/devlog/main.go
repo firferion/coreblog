@@ -7,6 +7,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"coreblog/internal/blog"
@@ -76,21 +78,37 @@ func main() {
 
 	// Если задан UNIX_SOCKET, используем его, иначе — стандартный TCP :8080
 	sockPath := os.Getenv("UNIX_SOCKET")
-	if sockPath != "" {
-		fmt.Printf("Запуск на unix-сокете: %s\n", sockPath)
-		os.Remove(sockPath)
-		listener, err := net.Listen("unix", sockPath)
-		if err != nil {
-			log.Fatalf("Socket error: %v", err)
+	go func() {
+		if sockPath != "" {
+			fmt.Printf("Запуск на unix-сокете: %s\n", sockPath)
+			os.Remove(sockPath)
+			listener, err := net.Listen("unix", sockPath)
+			if err != nil {
+				log.Fatalf("Socket error: %v", err)
+			}
+			os.Chmod(sockPath, 0666)
+			if err := httpSrv.Serve(listener); err != nil && err != http.ErrServerClosed {
+				log.Fatalf("Serve error: %v", err)
+			}
+		} else {
+			fmt.Println("Запуск сервера на :8080 (TCP)")
+			if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				log.Fatalf("Serve error: %v", err)
+			}
 		}
-		os.Chmod(sockPath, 0666)
-		if err := httpSrv.Serve(listener); err != nil {
-			log.Fatalf("Serve error: %v", err)
-		}
-	} else {
-		fmt.Println("Запуск сервера на :8080 (TCP)")
-		if err := httpSrv.ListenAndServe(); err != nil {
-			log.Fatalf("Serve error: %v", err)
-		}
+	}()
+
+	// Ожидание сигнала завершения от Docker (SIGTERM) или Ctrl+C (SIGINT)
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	fmt.Println("\nПолучен сигнал завершения. Плавная остановка сервера...")
+
+	// Даем 5 секунд на завершение текущих HTTP-запросов
+	ctxShutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := httpSrv.Shutdown(ctxShutdown); err != nil {
+		log.Fatalf("Ошибка при остановке сервера: %v", err)
 	}
+	fmt.Println("Сервер успешно остановлен. Ресурсы освобождены.")
 }
