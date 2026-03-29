@@ -17,13 +17,13 @@ import (
 )
 
 func main() {
-	// Загрузка .env файла (игнорируем ошибку, если файла нет)
-	_ = godotenv.Load()
+	// Загрузка .env файла (игнорируем ошибку, если файла нет) с перезаписью текущих переменных
+	_ = godotenv.Overload()
 
 	// Строка подключения к БД (через переменную окружения или дефолт для локального Docker на Windows)
 	connStr := os.Getenv("DATABASE_URL")
 	if connStr == "" {
-		connStr = "postgres://devlog_user:devlog_password@localhost:5432/devlog_db"
+		connStr = "postgres://devlog_user:devlog_password@localhost:5432/devlog?sslmode=disable"
 	}
 
 	// Парсинг конфигурации пула

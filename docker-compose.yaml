@@ -3,16 +3,42 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
-    container_name: coreblog-db
     environment:
       POSTGRES_USER: devlog_user
       POSTGRES_PASSWORD: devlog_password
-      POSTGRES_DB: devlog_db
+      POSTGRES_DB: devlog
+    volumes:
+      - postgres_data_local:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - db
     restart: always
+    environment:
+      # Подключаемся к контейнеру db
+      - DATABASE_URL=postgres://devlog_user:devlog_password@db:5432/devlog?sslmode=disable
+      # Указываем путь к сокету
+      - UNIX_SOCKET=/var/run/devlog/devlog.sock
+    volumes:
+      - socket_data:/var/run/devlog
+
+  web:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - socket_data:/var/run/devlog
 
 volumes:
-  postgres_data:
+  postgres_data_local:
+  socket_data:
