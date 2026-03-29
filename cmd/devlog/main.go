@@ -13,11 +13,18 @@ import (
 	"coreblog/internal/server"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	// Строка подключения к БД
-	connStr := "postgres://devlog_user:devlog_password@/devlog_db?host=/var/run/postgresql"
+	// Загрузка .env файла (игнорируем ошибку, если файла нет)
+	_ = godotenv.Load()
+
+	// Строка подключения к БД (через переменную окружения или дефолт для локального Docker на Windows)
+	connStr := os.Getenv("DATABASE_URL")
+	if connStr == "" {
+		connStr = "postgres://devlog_user:devlog_password@localhost:5432/devlog_db"
+	}
 
 	// Парсинг конфигурации пула
 	config, err := pgxpool.ParseConfig(connStr)
@@ -46,13 +53,12 @@ func main() {
 	// Инициализация слоев
 	store := blog.NewStore(pool)
 
-	// Параметры VK OAuth из окружения
+	// Параметры OAuth из окружения
 	vkClientID := os.Getenv("VK_CLIENT_ID")
 	vkClientSecret := os.Getenv("VK_CLIENT_SECRET")
 	vkRedirectURI := os.Getenv("VK_REDIRECT_URI")
 	adminVKID := os.Getenv("ADMIN_VK_ID")
 
-	// Параметры Yandex OAuth из окружения
 	yandexClientID := os.Getenv("YANDEX_CLIENT_ID")
 	yandexClientSecret := os.Getenv("YANDEX_CLIENT_SECRET")
 	yandexRedirectURI := os.Getenv("YANDEX_REDIRECT_URI")
@@ -68,16 +74,23 @@ func main() {
 		ReadTimeout:  15 * time.Second,
 	}
 
-	fmt.Println("Сервер подготавливается на unix-сокете")
-	sockPath := "/tmp/devlog.sock"
-	os.Remove(sockPath)
-	listener, err := net.Listen("unix", sockPath)
-	if err != nil {
-		log.Fatalf("Socket error: %v", err)
-	}
-	os.Chmod(sockPath, 0666)
-	fmt.Println("Сервер запущен на сокете:", sockPath)
-	if err := httpSrv.Serve(listener); err != nil {
-		log.Fatalf("Serve error: %v", err)
+	// Если задан UNIX_SOCKET, используем его, иначе — стандартный TCP :8080
+	sockPath := os.Getenv("UNIX_SOCKET")
+	if sockPath != "" {
+		fmt.Printf("Запуск на unix-сокете: %s\n", sockPath)
+		os.Remove(sockPath)
+		listener, err := net.Listen("unix", sockPath)
+		if err != nil {
+			log.Fatalf("Socket error: %v", err)
+		}
+		os.Chmod(sockPath, 0666)
+		if err := httpSrv.Serve(listener); err != nil {
+			log.Fatalf("Serve error: %v", err)
+		}
+	} else {
+		fmt.Println("Запуск сервера на :8080 (TCP)")
+		if err := httpSrv.ListenAndServe(); err != nil {
+			log.Fatalf("Serve error: %v", err)
+		}
 	}
 }
