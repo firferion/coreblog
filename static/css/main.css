@@ -303,12 +303,68 @@ footer {
 
 /* ПЛАНШЕТЫ (Бургер-меню: 769px - 1024px) */
 @media (max-width: 1024px) and (min-width: 769px) {
-    .menu-icon { display: block; }
-    nav { position: absolute; top: var(--header-height); left: 0; width: 100%; background-color: #1e272c; max-height: 0; overflow: hidden; transition: max-height 0.3s ease-in-out; border-bottom: 1px solid #2e3440; }
-    nav ul { flex-direction: column; padding: 20px 24px; }
-    nav ul li { margin: 12px 0; }
-    #menu-toggle:checked ~ nav { max-height: 400px; overflow: visible; }
-    .user-dropdown { right: auto; left: 0; top: 100%; }
+    .menu-icon { display: block; font-size: 1.8rem; color: var(--accent-cyan); transition: transform 0.3s ease; }
+    #menu-toggle:checked ~ .menu-icon { transform: rotate(90deg); }
+
+    /* Плавающая стеклянная карточка вместо скучного меню на всю ширину */
+    nav { 
+        position: absolute; 
+        top: calc(var(--header-height) + 15px); 
+        right: 24px; 
+        left: auto;
+        width: 280px; 
+        background: rgba(30, 39, 44, 0.95); 
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        max-height: 0; 
+        opacity: 0;
+        overflow: hidden; 
+        transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1); 
+    }
+
+    #menu-toggle:checked ~ nav { 
+        max-height: 500px; 
+        opacity: 1;
+        padding: 15px 0;
+        overflow: visible; 
+    }
+
+    nav ul { flex-direction: column; padding: 0; }
+    nav ul li { margin: 0; width: 100%; }
+
+    /* Включаем иконки для планшета */
+    .nav-icon { display: inline-block; margin-right: 12px; font-size: 1.2rem; width: 24px; text-align: center; }
+
+    /* Стили пунктов меню с анимацией сдвига */
+    nav ul li a {
+        display: flex;
+        align-items: center;
+        padding: 12px 24px;
+        color: #cfd8dc;
+        transition: all 0.2s ease;
+    }
+    nav ul li a:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--accent-cyan);
+        padding-left: 32px; /* Красивый сдвиг вправо при наведении */
+    }
+
+    /* Массивная кнопка входа */
+    .nav-login { margin-top: 10px; padding: 0 24px; width: 100%; box-sizing: border-box; }
+    .nav-login button {
+        width: 100%;
+        padding: 12px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 8px;
+    }
+
+    /* Профиль */
+    .user-profile { padding: 15px 24px; justify-content: flex-start; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 10px; }
+    .user-dropdown { right: 0; left: auto; top: calc(100% + 10px); width: 250px; }
 }
 
 /* СМАРТФОНЫ (Нижняя панель навигации: < 768px) */

@@ -66,6 +66,9 @@ func (s *Server) getUser(r *http.Request) *blog.User {
 
 func (s *Server) routes() {
 	s.mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	s.mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "static/favicon.png")
+	})
 	s.mux.HandleFunc("GET /{$}", s.handleIndex())
 	s.mux.HandleFunc("GET /article/{slug}", s.handleArticle())
 

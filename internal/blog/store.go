@@ -139,5 +139,14 @@ func (s *Store) AuthenticateUser(ctx context.Context, provider, providerID, user
 		}
 		return nil, err
 	}
+	
+	// Если пользователь уже есть, но в .env он теперь прописан как админ — повышаем права
+	if isAdmin && user.Role != "admin" {
+		_, updateErr := s.pool.Exec(ctx, `UPDATE users SET role = 'admin' WHERE id = $1`, user.ID)
+		if updateErr == nil {
+			user.Role = "admin"
+		}
+	}
+
 	return &user, nil
 }
