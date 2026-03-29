@@ -21,7 +21,7 @@
                 <li><a href="/about"><span class="nav-icon">ℹ️</span><span class="nav-text">О проекте</span></a></li>
                 {{if .User}}
                 <li class="user-profile">
-                    <img src="{{.User.AvatarURL}}" alt="Avatar" class="avatar" id="avatar-toggle">
+                    <img src="{{.User.AvatarURL}}" alt="Avatar" class="avatar" id="avatar-toggle" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name={{.User.Username}}&background=2e3440&color=82AAFF';">
                     <div class="user-dropdown" id="user-dropdown">
                         <div class="user-info">
                             <p class="user-name">{{.User.Username}}</p>
