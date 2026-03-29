@@ -18,7 +18,7 @@ import (
 
 func main() {
 	// Загрузка .env файла (игнорируем ошибку, если файла нет) с перезаписью текущих переменных
-	_ = godotenv.Overload()
+	_ = godotenv.Load()
 
 	// Строка подключения к БД (через переменную окружения или дефолт для локального Docker на Windows)
 	connStr := os.Getenv("DATABASE_URL")

@@ -26,6 +26,8 @@ services:
       - UNIX_SOCKET=/var/run/devlog/devlog.sock
     volumes:
       - socket_data:/var/run/devlog
+      - ./templates:/root/templates:ro
+      - ./static:/root/static:ro
 
   web:
     build:

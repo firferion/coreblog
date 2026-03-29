@@ -43,6 +43,10 @@
     <main>
         {{if .IsIndex}}
             {{template "index_content" .Articles}}
+        {{else if .IsPrivacy}}
+            {{template "privacy_content"}}
+        {{else if .IsAdmin}}
+            {{template "admin_content" .}}
         {{else}}
             {{template "article_content" .Article}}
         {{end}}

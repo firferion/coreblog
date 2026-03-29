@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"fmt"
 	"html/template"
 	"net/http"
 	"sync"
@@ -141,7 +140,20 @@ func (s *Server) handleArticle() http.HandlerFunc {
 
 func (s *Server) handleAdmin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Запрашиваем с запасом 100 последних статей
+		articles, err := s.store.GetLatestArticles(r.Context(), 100)
+		if err != nil {
+			http.Error(w, "Ошибка загрузки статей", http.StatusInternalServerError)
+			return
+		}
+
+		tmplData := map[string]any{
+			"IsAdmin":  true,
+			"Articles": articles,
+			"User":     s.getUser(r),
+		}
+
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprint(w, "<h1>Добро пожаловать в Админку, Фирыч!</h1>")
+		s.tmpl.ExecuteTemplate(w, "base.html", tmplData)
 	}
 }

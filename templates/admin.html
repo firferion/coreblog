@@ -1,0 +1,36 @@
+{{define "admin_content"}}
+<div class="admin-dashboard" style="background: #232830; padding: 30px; border-radius: 10px; border: 1px solid #2e3440;">
+    <div class="admin-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <h1 style="margin: 0; color: #fff;">Панель управления</h1>
+        <a href="/admin/editor" class="login-btn" style="text-decoration: none;">+ Написать статью</a>
+    </div>
+    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+        <thead>
+            <tr style="border-bottom: 2px solid #2e3440; color: #8892b0;">
+                <th style="padding: 12px 10px;">ID</th>
+                <th style="padding: 12px 10px;">Заголовок</th>
+                <th style="padding: 12px 10px;">Дата</th>
+                <th style="padding: 12px 10px; text-align: right;">Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Articles}}
+            <tr style="border-bottom: 1px solid #2e3440; transition: background 0.2s;">
+                <td style="padding: 12px 10px; color: #8892b0;">#{{.ID}}</td>
+                <td style="padding: 12px 10px;">
+                    <a href="/article/{{.Slug}}" style="color: #cfd8dc; text-decoration: none; font-weight: bold;">{{.Title}}</a>
+                </td>
+                <td style="padding: 12px 10px; color: #8892b0;">{{.CreatedAt.Format "02.01.2006"}}</td>
+                <td style="padding: 12px 10px; text-align: right;">
+                    <a href="/admin/editor?id={{.ID}}" style="color: #0077FF; text-decoration: none; margin-right: 15px;">✏️ Редактировать</a>
+                    <a href="/admin/delete?id={{.ID}}" style="color: #FC3F1D; text-decoration: none;">🗑️ Удалить</a>
+                </td>
+            </tr>
+            {{end}}
+            {{if not .Articles}}
+            <tr><td colspan="4" style="text-align: center; padding: 20px; color: #8892b0;">У вас пока нет статей. Пора написать первую!</td></tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+{{end}}
